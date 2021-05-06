@@ -176,8 +176,32 @@ void flood(uint16_t color, uint32_t len);
 void tft_FillScreen(uint16_t color);
 void tft_drawPixel(int16_t x, int16_t y, uint16_t color);
 void tft_drawRGBBitmap(int16_t x, int16_t y,uint16_t* bitmap, int16_t w, int16_t h) ;
-void tft_DrawLine(uint16_t color, uint16_t x1, uint16_t y1,
-											uint16_t x2, uint16_t y2);
+void tft_DrawLine( uint16_t x1, uint16_t y1,
+											uint16_t x2, uint16_t y2,uint16_t color);
+void tft_FastHLine(int16_t x, int16_t y, int16_t length,uint16_t color);
+void tft_FastVLine( int16_t x, int16_t y, int16_t length,uint16_t color);
+void tft_DrawCircle(uint16_t x0, uint16_t y0, int r, uint16_t color);
+void tft_FillCircle(int16_t x0, int16_t y0, int16_t r,uint16_t color);
+
+void tft_DrawCircleHelper( int16_t x0, int16_t y0,
+               int16_t r, uint8_t cornername, uint16_t color);
+void tft_FillCircleHelper(int16_t x0, int16_t y0, int16_t r,
+    uint8_t cornername, int16_t delta, uint16_t color);
+
+void tft_DrawRect( uint16_t x1, uint16_t y1,uint16_t x2, uint16_t y2,uint16_t color);
+void tft_FillRect(int16_t x, int16_t y, int16_t w, int16_t h,uint16_t color);
+void tft_DrawRoundRect(int16_t x, int16_t y, int16_t w,
+  int16_t h, int16_t r, uint16_t color);
+void tft_FillRoundRect(int16_t x, int16_t y, int16_t w,
+				 int16_t h, int16_t r, uint16_t color);
+void tft_DrawTriangle(int16_t x0, int16_t y0,
+				int16_t x1, int16_t y1,
+				int16_t x2, int16_t y2, uint16_t color);
+void tft_FillTriangle ( int16_t x0, int16_t y0,
+				  int16_t x1, int16_t y1,
+				  int16_t x2, int16_t y2, uint16_t color);
+
 void tft_oscBackground( uint16_t color);
+void tft_oscRefill( uint16_t color);
 
 #endif

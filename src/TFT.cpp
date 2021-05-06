@@ -325,6 +325,7 @@ void tft_FillScreen(uint16_t color)
  // setAddrWindow(0, 0, _width - 1, _height - 1);
    setAddrWindow(0, 0, TFTWIDTH - 1, TFTHEIGHT - 1);
   flood(color, (long)TFTWIDTH * (long)TFTHEIGHT);
+  
 }
 
 void tft_drawPixel(int16_t x, int16_t y, uint16_t color) 
@@ -355,9 +356,7 @@ void tft_drawRGBBitmap(int16_t x, int16_t y,uint16_t* bitmap, int16_t w, int16_t
 
 }
 
-
-
-void tft_DrawLine(uint16_t color, uint16_t x1, uint16_t y1,uint16_t x2, uint16_t y2)
+void tft_DrawLine( uint16_t x1, uint16_t y1,uint16_t x2, uint16_t y2,uint16_t color)
 {
   int steep = abs(y2-y1)>abs(x2-x1);
   uint16_t temp=0;
@@ -399,23 +398,334 @@ void tft_DrawLine(uint16_t color, uint16_t x1, uint16_t y1,uint16_t x2, uint16_t
   }
 }
 
+void tft_FastVLine(int16_t x, int16_t y, int16_t length,uint16_t color)
+{
+  int16_t y2;
 
+  // Initial off-screen clipping
+  if((length <= 0      ) ||
+     (x      <  0      ) || ( x                  >= TFTWIDTH) ||
+     (y      >= TFTHEIGHT) || ((y2 = (y+length-1)) <  0     )) return;
+  if(y < 0) {         // Clip top
+    length += y;
+    y       = 0;
+  }
+  if(y2 >= TFTHEIGHT) { // Clip bottom
+    y2      = TFTHEIGHT - 1;
+    length  = y2 - y + 1;
+  }
+
+  setAddrWindow(x, y, x, y2);
+  flood(color, length);
+  setAddrWindow(0, 0, TFTWIDTH - 1, TFTHEIGHT - 1);
+  
+}
+
+
+void tft_FastHLine(int16_t x, int16_t y, int16_t length,
+  uint16_t color)
+{
+  int16_t x2;
+
+  // Initial off-screen clipping
+  if((length <= 0     ) ||
+     (y      <  0     ) || ( y                  >= TFTHEIGHT ) ||
+     (x      >= TFTWIDTH) || ((x2 = (x+length-1)) <  0      )) return;
+
+  if(x < 0) {        // Clip left
+    length += x;
+    x       = 0;
+  }
+  if(x2 >= TFTWIDTH) { // Clip right
+    x2      = TFTWIDTH - 1;
+    length  = x2 - x + 1;
+  }
+
+  setAddrWindow(x, y, x2, y);
+  flood(color, length);
+  setAddrWindow(0, 0, TFTWIDTH - 1, TFTHEIGHT - 1);
+  
+}
+
+void tft_DrawCircle(uint16_t x0, uint16_t y0, int r, uint16_t color)
+{
+  int16_t f = 1 - r;
+  int16_t ddF_x = 1;
+  int16_t ddF_y = -2 * r;
+  int16_t x = 0;
+  int16_t y = r;
+
+  tft_drawPixel(x0  , y0+r, color);
+  tft_drawPixel(x0  , y0-r, color);
+  tft_drawPixel(x0+r, y0  , color);
+  tft_drawPixel(x0-r, y0  , color);
+
+  while (x<y) {
+    if (f >= 0) {
+      y--;
+      ddF_y += 2;
+      f += ddF_y;
+    }
+    x++;
+    ddF_x += 2;
+    f += ddF_x;
+  
+    tft_drawPixel(x0 + x, y0 + y, color);
+    tft_drawPixel(x0 - x, y0 + y, color);
+    tft_drawPixel(x0 + x, y0 - y, color);
+    tft_drawPixel(x0 - x, y0 - y, color);
+    tft_drawPixel(x0 + y, y0 + x, color);
+    tft_drawPixel(x0 - y, y0 + x, color);
+    tft_drawPixel(x0 + y, y0 - x, color);
+    tft_drawPixel(x0 - y, y0 - x, color);
+  }
+}
+
+void tft_DrawCircleHelper( int16_t x0, int16_t y0,
+               int16_t r, uint8_t cornername, uint16_t color) {
+  int16_t f     = 1 - r;
+  int16_t ddF_x = 1;
+  int16_t ddF_y = -2 * r;
+  int16_t x     = 0;
+  int16_t y     = r;
+
+  while (x<y) {
+    if (f >= 0) {
+      y--;
+      ddF_y += 2;
+      f     += ddF_y;
+    }
+    x++;
+    ddF_x += 2;
+    f     += ddF_x;
+    if (cornername & 0x4) {
+      tft_drawPixel(x0 + x, y0 + y, color);
+      tft_drawPixel(x0 + y, y0 + x, color);
+    } 
+    if (cornername & 0x2) {
+      tft_drawPixel(x0 + x, y0 - y, color);
+      tft_drawPixel(x0 + y, y0 - x, color);
+    }
+    if (cornername & 0x8) {
+      tft_drawPixel(x0 - y, y0 + x, color);
+      tft_drawPixel(x0 - x, y0 + y, color);
+    }
+    if (cornername & 0x1) {
+      tft_drawPixel(x0 - y, y0 - x, color);
+      tft_drawPixel(x0 - x, y0 - y, color);
+    }
+  }
+}
+
+void tft_FillCircleHelper(int16_t x0, int16_t y0, int16_t r,
+    uint8_t cornername, int16_t delta, uint16_t color) {
+
+  int16_t f     = 1 - r;
+  int16_t ddF_x = 1;
+  int16_t ddF_y = -2 * r;
+  int16_t x     = 0;
+  int16_t y     = r;
+
+  while (x<y) {
+    if (f >= 0) {
+      y--;
+      ddF_y += 2;
+      f     += ddF_y;
+    }
+    x++;
+    ddF_x += 2;
+    f     += ddF_x;
+
+    if (cornername & 0x1) {
+      tft_FastVLine(x0+x, y0-y, (2*y+1+delta), color);
+      tft_FastVLine(x0+y, y0-x, 2*x+1+delta, color);
+    }
+    if (cornername & 0x2) {
+      tft_FastVLine(x0-x, y0-y, 2*y+1+delta, color);
+      tft_FastVLine(x0-y, y0-x, 2*x+1+delta, color);
+    }
+  }
+}
+
+void tft_FillCircle(int16_t x0, int16_t y0, int16_t r,
+			      uint16_t color) {
+  tft_FastVLine(x0, y0-r, 2*r+1, color);
+  tft_FillCircleHelper(x0, y0, r, 3,0, color);
+}
+void tft_DrawRect( uint16_t x1, uint16_t y1,
+											uint16_t x2, uint16_t y2,uint16_t color)
+{
+	tft_FastHLine(x1,y1,x2,color);
+	tft_FastVLine(x2,y1,y2,color);
+	tft_FastVLine(x1,y1,y2,color);
+	tft_FastHLine(x1,y2,x2,color);
+}
+void tft_FillRect(int16_t x, int16_t y, int16_t w, int16_t h,
+			    uint16_t color) {
+  // Update in subclasses if desired!
+  for (int16_t i=x; i<x+w; i++) {
+    tft_FastVLine(i, y, h, color);
+  }
+}
+
+void tft_DrawRoundRect(int16_t x, int16_t y, int16_t w,
+  int16_t h, int16_t r, uint16_t color) {
+  // smarter version
+  tft_FastHLine(x+r  , y    , w-2*r, color); // Top
+  tft_FastHLine(x+r  , y+h-1, w-2*r, color); // Bottom
+  tft_FastVLine(x    , y+r  , h-2*r, color); // Left
+  tft_FastVLine(x+w-1, y+r  , h-2*r, color); // Right
+  // draw four corners
+  tft_DrawCircleHelper(x+r    , y+r    , r, 1, color);
+  tft_DrawCircleHelper(x+w-r-1, y+r    , r, 2, color);
+  tft_DrawCircleHelper(x+w-r-1, y+h-r-1, r, 4, color);
+  tft_DrawCircleHelper(x+r    , y+h-r-1, r, 8, color);
+}
+void tft_FillRoundRect(int16_t x, int16_t y, int16_t w,
+				 int16_t h, int16_t r, uint16_t color) {
+  // smarter version
+  tft_FillRect(x+r, y, w-2*r, h, color);
+
+  // draw four corners
+  tft_FillCircleHelper(x+w-r-1, y+r, r, 1, h-2*r-1, color);
+  tft_FillCircleHelper(x+r    , y+r, r, 2, h-2*r-1, color);
+}
+
+void tft_DrawTriangle(int16_t x0, int16_t y0,
+
+				int16_t x1, int16_t y1,
+				int16_t x2, int16_t y2, uint16_t color) {
+  tft_DrawLine(x0, y0, x1, y1, color);
+  tft_DrawLine(x1, y1, x2, y2, color);
+  tft_DrawLine(x2, y2, x0, y0, color);
+}
+void tft_FillTriangle ( int16_t x0, int16_t y0,
+				  int16_t x1, int16_t y1,
+				  int16_t x2, int16_t y2, uint16_t color) {
+
+  int16_t a, b, y,z, last;
+
+  // Sort coordinates by Y order (y2 >= y1 >= y0)
+  if (y0 > y1) 
+    {
+     z=y0;
+     y0=y1;
+     y1=z;
+     z=x0;
+     x0=x1;
+     x1=z;
+   }
+  
+  if (y1 > y2) {
+     z=y2;
+     y2=y1;
+     y1=z;
+     z=x2;
+     x2=x1;
+     x1=z;
+  }
+  if (y0 > y1) {
+    z=y0;
+     y0=y1;
+     y1=z;
+     z=x0;
+     x0=x1;
+     x1=z;
+ }
+
+  if(y0 == y2) { // Handle awkward all-on-same-line case as its own thing
+    a = b = x0;
+    if(x1 < a)      a = x1;
+    else if(x1 > b) b = x1;
+    if(x2 < a)      a = x2;
+    else if(x2 > b) b = x2;
+    tft_FastHLine(a, y0, b-a+1, color);
+    return;
+  }
+
+  int16_t
+    dx01 = x1 - x0,
+    dy01 = y1 - y0,
+    dx02 = x2 - x0,
+    dy02 = y2 - y0,
+    dx12 = x2 - x1,
+    dy12 = y2 - y1;
+  int32_t
+    sa   = 0,
+    sb   = 0;
+
+  // For upper part of triangle, find scanline crossings for segments
+  // 0-1 and 0-2.  If y1=y2 (flat-bottomed triangle), the scanline y1
+  // is included here (and second loop will be skipped, avoiding a /0
+  // error there), otherwise scanline y1 is skipped here and handled
+  // in the second loop...which also avoids a /0 error here if y0=y1
+  // (flat-topped triangle).
+  if(y1 == y2) last = y1;   // Include y1 scanline
+  else         last = y1-1; // Skip it
+
+  for(y=y0; y<=last; y++) {
+    a   = x0 + sa / dy01;
+    b   = x0 + sb / dy02;
+    sa += dx01;
+    sb += dx02;
+    /* longhand:
+    a = x0 + (x1 - x0) * (y - y0) / (y1 - y0);
+    b = x0 + (x2 - x0) * (y - y0) / (y2 - y0);
+    */
+   if(a > b)
+   {
+     z=a;
+   a=b;
+   b=z;
+   }
+    tft_FastHLine(a, y, b-a+1, color);
+  }
+
+  // For lower part of triangle, find scanline crossings for segments
+  // 0-2 and 1-2.  This loop is skipped if y1=y2.
+  sa = dx12 * (y - y1);
+  sb = dx02 * (y - y0);
+  for(; y<=y2; y++) {
+    a   = x1 + sa / dy12;
+    b   = x0 + sb / dy02;
+    sa += dx12;
+    sb += dx02;
+    /* longhand:
+    a = x1 + (x2 - x1) * (y - y1) / (y2 - y1);
+    b = x0 + (x2 - x0) * (y - y0) / (y2 - y0);
+    */
+    if(a > b) {
+     z=a;
+   a=b;
+   b=z;
+   }
+    tft_FastHLine(a, y, b-a+1, color);
+  }
+}
 
 void tft_oscBackground( uint16_t color) {
   tft_FillScreen(0);
  for(int j=0;j<240;j+=40)
-  {    
-      for(int i=0;i<320;i++)
-      {
-        tft_drawPixel(j,i,color);
-      }
+  {  
+    tft_FastVLine(j,0,320,color);  
   }
  for(int j=0;j<320;j+=40)
   {    
-      for(int i=0;i<240;i++)
-      {
-        tft_drawPixel(i,j,color);
-      }
+      tft_FastHLine(0,j,240,color);
+  }
+  
+}
+
+void tft_oscRefill( uint16_t color) {
+  setAddrWindow(110,0, 190, TFTHEIGHT - 1);
+  flood(0, 240*320);
+ for(int j=120;j<200;j+=40)
+  {  
+    tft_FastVLine(j,0,320,color);  
+  }
+ for(int j=0;j<320;j+=40)
+  {    
+      tft_FastHLine(0,j,240,color);
   }
   
 }
