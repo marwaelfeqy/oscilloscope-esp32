@@ -124,8 +124,10 @@
 
 
 /* TFT Specs Begin  */
-#define TFTWIDTH   240
-#define TFTHEIGHT  320
+#define WIDTH   240
+#define HEIGHT  320
+
+
 /* TFT Specs End  */
 
 /* TFT Routines Begin  */
@@ -203,5 +205,6 @@ void tft_FillTriangle ( int16_t x0, int16_t y0,
 
 void tft_oscBackground( uint16_t color);
 void tft_oscRefill( uint16_t color);
+void setRotation(uint8_t x);
 
 #endif

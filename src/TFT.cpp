@@ -2,6 +2,10 @@
 
 #include "tft.h"
 
+
+uint16_t TFTWIDTH =  240;
+uint16_t TFTHEIGHT = 320;
+
  volatile uint8_t *csPort    , *cdPort    , *wrPort    , *rdPort;
     uint8_t           csPinSet  ,  cdPinSet  ,  wrPinSet  ,  rdPinSet  ,
             csPinUnset,  cdPinUnset,  wrPinUnset,  rdPinUnset,
@@ -727,5 +731,45 @@ void tft_oscRefill( uint16_t color) {
   {    
       tft_FastHLine(0,j,240,color);
   }
+  
+}
+
+void setRotation(uint8_t x) {
+  
+   // MEME, HX8357D uses same registers as 9341 but different values
+   uint16_t t,rotation;
+   rotation=x & 3;
+   
+   switch(rotation) {
+   case 0:
+   case 2:
+    TFTWIDTH  = WIDTH;
+    TFTHEIGHT = HEIGHT;
+    break;
+   case 1:
+   case 3:
+    TFTWIDTH  = HEIGHT;
+    TFTHEIGHT = WIDTH;
+    break;
+  }
+  
+  CS_ACTIVE;
+   switch (rotation) {
+   case 2:
+     t = ILI9341_MADCTL_MX | ILI9341_MADCTL_BGR;
+     break;
+   case 3:
+     t = ILI9341_MADCTL_MV | ILI9341_MADCTL_BGR;
+     break;
+  case 0:
+    t = ILI9341_MADCTL_MY | ILI9341_MADCTL_BGR;
+    break;
+   case 1:
+     t = ILI9341_MADCTL_MX | ILI9341_MADCTL_MY | ILI9341_MADCTL_MV | ILI9341_MADCTL_BGR;
+     break;
+  }
+   writeRegister8(ILI9341_MADCTL, t ); // MADCTL
+   // For 9341, init default full-screen address window:
+   setAddrWindow(0, 0, TFTWIDTH - 1, TFTHEIGHT - 1); // CS_IDLE happens here
   
 }

@@ -152,7 +152,7 @@ void setup() {
   tft_init();
   tft_reset();
   tft_begin();
-
+  setRotation(0);
   tft_oscBackground(YELLOW);
   /*
   tft_FillCircle(120,120,50,RED);
